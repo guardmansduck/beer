@@ -2,7 +2,7 @@
 set -e
 
 # Paths
-SRC_DIR="./src/main/com/guardmansduck/beer"
+SRC_DIR=".Beer/src/main/com/guardmansduck/beer"
 CLASS_DIR="./build/classes"
 OUTPUT_DIR="./dist"
 JAR_NAME="BeerCompat.jar"
