@@ -1,4 +1,4 @@
-package com.guardmansduck.beer.compat._1215.items;
+package com.guardmansduck.beer.compat._1215;
 
 public class ItemModule1215 {
     public static void init() {

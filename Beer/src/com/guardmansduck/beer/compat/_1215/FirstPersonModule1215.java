@@ -1,4 +1,4 @@
-package com.guardmansduck.beer.compat._1215.firstperson;
+package com.guardmansduck.beer.compat._1215;
 
 public class FirstPersonModule1215 {
     public static void init() {

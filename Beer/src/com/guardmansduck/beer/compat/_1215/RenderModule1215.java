@@ -1,4 +1,4 @@
-package com.guardmansduck.beer.compat._1215.rendering;
+package com.guardmansduck.beer.compat._1215;
 
 public class RenderModule1215 {
     public static void init() {
