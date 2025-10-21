@@ -1,0 +1,20 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.yourname.beer'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Optional: you can manually add Minecraft jars here later
+}
