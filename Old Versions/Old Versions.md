@@ -1,0 +1,1 @@
+A single instalation of beer will be compatable for all versions of minecraft so previous versions of Beer will be in this folder. These versions can still be used on any version of minecraft.
