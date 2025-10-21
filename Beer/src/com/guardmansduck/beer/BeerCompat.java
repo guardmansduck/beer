@@ -6,13 +6,26 @@ import java.util.*;
 import java.util.jar.*;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
 
 public class BeerCompat {
     private static Object compatData;
+
     private static Method getEntityMethod;
     private static Method getBlockMethod;
+    private static Method getWorldgenMethod;
+    private static Method getBugFixMethod;
+    private static Method getNBTMethod;
+    private static Method getModelMethod;
+
     private static Map<String, Identifier> entityCache = new HashMap<>();
     private static Map<String, Identifier> blockCache = new HashMap<>();
+    private static Map<String, String> worldgenCache = new HashMap<>();
+    private static Map<String, String> bugFixCache = new HashMap<>();
+    private static Map<String, String> nbtCache = new HashMap<>();
+    private static Map<String, String> modelCache = new HashMap<>();
+
     private static List<String> availableVersions = new ArrayList<>();
 
     /** Auto-initialize BeerCompat by discovering available versions */
@@ -34,17 +47,22 @@ public class BeerCompat {
             Class<?> clazz = Class.forName(className);
             compatData = clazz.getDeclaredConstructor().newInstance();
 
-            // Cache reflection methods
+            // Cache methods
             getEntityMethod = clazz.getMethod("getEntity", String.class);
             getBlockMethod = clazz.getMethod("getBlock", String.class);
+            getWorldgenMethod = clazz.getMethod("getWorldgenStructure", String.class);
+            getBugFixMethod = clazz.getMethod("getBugFix", String.class);
+            getNBTMethod = clazz.getMethod("getNBTKey", String.class);
+            getModelMethod = clazz.getMethod("getModel", String.class); // New for ModelRegistry
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize BeerCompatData for version: " + chosenVersion, e);
         }
     }
 
-    /** Scan the JAR for BeerCompatData classes and extract version numbers */
+    /** Discover BeerCompatData classes in the JAR */
     private static void discoverVersions() {
-        if (!availableVersions.isEmpty()) return; // already discovered
+        if (!availableVersions.isEmpty()) return;
 
         try {
             String packagePath = "com/guardmansduck/beer/compat/";
@@ -70,74 +88,84 @@ public class BeerCompat {
         Collections.sort(availableVersions, Collections.reverseOrder());
     }
 
-    /** Pick the closest lower or equal version to mcVersion */
+    /** Pick closest lower or equal version */
     private static String getClosestVersion(String mcVersion) {
         for (String v : availableVersions) {
-            if (Integer.parseInt(mcVersion) >= Integer.parseInt(v)) {
-                return v;
-            }
+            if (Integer.parseInt(mcVersion) >= Integer.parseInt(v)) return v;
         }
         return null;
     }
 
-    /** Retrieve an entity Identifier by name (cached) */
+    /** Cached typed getters */
     public static Identifier getEntity(String name) {
         if (entityCache.containsKey(name)) return entityCache.get(name);
-        if (compatData == null) return null;
         try {
             Identifier id = (Identifier) getEntityMethod.invoke(compatData, name);
             entityCache.put(name, id);
             return id;
-        } catch (Exception e) {
-            return null;
-        }
+        } catch (Exception e) { return null; }
     }
 
-    /** Retrieve a block Identifier by name (cached) */
     public static Identifier getBlock(String name) {
         if (blockCache.containsKey(name)) return blockCache.get(name);
-        if (compatData == null) return null;
         try {
             Identifier id = (Identifier) getBlockMethod.invoke(compatData, name);
             blockCache.put(name, id);
             return id;
-        } catch (Exception e) {
-            return null;
-        }
+        } catch (Exception e) { return null; }
     }
 
-    /** List all available entity names for the current version */
-    public static Set<String> listEntities() {
-        if (compatData == null) return Collections.emptySet();
-        Set<String> names = new HashSet<>();
-        // Since BeerCompatData holds a Map called ENTITIES, we access it via reflection
+    public static String getWorldgenStructure(String name) {
+        if (worldgenCache.containsKey(name)) return worldgenCache.get(name);
         try {
-            Map<?, ?> entitiesMap = (Map<?, ?>) compatData.getClass()
-                .getField("ENTITIES")
-                .get(compatData);
-            for (Object key : entitiesMap.keySet()) {
-                names.add(key.toString());
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return names;
+            String value = (String) getWorldgenMethod.invoke(compatData, name);
+            worldgenCache.put(name, value);
+            return value;
+        } catch (Exception e) { return null; }
     }
 
-    /** List all available block names for the current version */
-    public static Set<String> listBlocks() {
-        if (compatData == null) return Collections.emptySet();
-        Set<String> names = new HashSet<>();
+    public static String getBugFix(String name) {
+        if (bugFixCache.containsKey(name)) return bugFixCache.get(name);
         try {
-            Map<?, ?> blocksMap = (Map<?, ?>) compatData.getClass()
-                .getField("BLOCKS")
-                .get(compatData);
-            for (Object key : blocksMap.keySet()) {
-                names.add(key.toString());
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-        return names;
+            String value = (String) getBugFixMethod.invoke(compatData, name);
+            bugFixCache.put(name, value);
+            return value;
+        } catch (Exception e) { return null; }
+    }
+
+    public static String getNBTKey(String name) {
+        if (nbtCache.containsKey(name)) return nbtCache.get(name);
+        try {
+            String value = (String) getNBTMethod.invoke(compatData, name);
+            nbtCache.put(name, value);
+            return value;
+        } catch (Exception e) { return null; }
+    }
+
+    public static String getModel(String name) {
+        if (modelCache.containsKey(name)) return modelCache.get(name);
+        try {
+            String value = (String) getModelMethod.invoke(compatData, name);
+            modelCache.put(name, value);
+            return value;
+        } catch (Exception e) { return null; }
+    }
+
+    /** List all keys dynamically for each type */
+    public static Set<String> listEntities() { return listMapKeys("ENTITIES"); }
+    public static Set<String> listBlocks() { return listMapKeys("BLOCKS"); }
+    public static Set<String> listWorldgen() { return listMapKeys("WORLDGEN_STRUCTURES"); }
+    public static Set<String> listBugFixes() { return listMapKeys("BUG_FIX_FLAGS"); }
+    public static Set<String> listNBTKeys() { return listMapKeys("NBT_KEYS"); }
+    public static Set<String> listModels() { return listMapKeys("MODEL_REGISTRY"); }
+
+    private static Set<String> listMapKeys(String fieldName) {
+        if (compatData == null) return Collections.emptySet();
+        Set<String> keys = new HashSet<>();
+        try {
+            Map<?, ?> map = (Map<?, ?>) compatData.getClass().getField(fieldName).get(compatData);
+            for (Object k : map.keySet()) keys.add(k.toString());
+        } catch (Exception e) { /* ignore */ }
+        return keys;
     }
 }
